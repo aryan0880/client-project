@@ -74,6 +74,7 @@ export async function assignSurvey(
  * POST /api/surveys/:id/send
  * Send survey invitation emails to all pending suppliers.
  * Idempotent — only sends to those not yet emailed.
+ * Returns emailConfigured flag so the frontend can distinguish config issues from send failures.
  */
 export async function sendSurveyEmails(
   req: AuthenticatedRequest,
@@ -84,6 +85,11 @@ export async function sendSurveyEmails(
     const survey = await Survey.findById(req.params.id);
     if (!survey) return next(ApiError.notFound('Survey not found'));
 
+    // Determine if email is configured (SMTP or Resend API)
+    const emailConfigured =
+      (!!env.smtpUser && !!env.smtpPass) ||
+      (!!env.resendApiKey && !env.resendApiKey.startsWith('re_replace') && env.resendApiKey.length > 10);
+
     const assignments = await SurveyAssignment.find({
       survey: survey._id,
       status: 'pending',
@@ -93,7 +99,7 @@ export async function sendSurveyEmails(
       res.json({
         success: true,
         message: 'No pending assignments to send emails to.',
-        data: { sent: 0 },
+        data: { sent: 0, total: 0, failed: [], links: [], emailConfigured },
       });
       return;
     }
@@ -103,7 +109,11 @@ export async function sendSurveyEmails(
     const generatedLinks: Array<{ supplier: string; email: string; link: string }> = [];
 
     for (const assignment of assignments) {
-      const supplier = assignment.supplier as { name: string; email: string };
+      const supplier = assignment.supplier as { name: string; email: string } | null;
+      if (!supplier) {
+        console.warn(`[Warn] Supplier not found for assignment ${assignment._id}, skipping email.`);
+        continue;
+      }
       const surveyUrl = `${env.frontendUrl}/survey/${assignment.token}`;
       generatedLinks.push({ supplier: supplier.name, email: supplier.email, link: surveyUrl });
 
@@ -112,23 +122,34 @@ export async function sendSurveyEmails(
       console.log(`🔗 ${surveyUrl}`);
       console.log(`======================================================\n`);
 
-      try {
-        const success = await sendSurveyInvitation({
-          supplierEmail: supplier.email,
-          supplierName: supplier.name,
-          surveyTitle: survey.title,
-          surveyToken: assignment.token,
-        });
-        if (success) sent++;
-      } catch (e) {
-        errors.push(supplier.email);
+      if (emailConfigured) {
+        try {
+          const success = await sendSurveyInvitation({
+            supplierEmail: supplier.email,
+            supplierName: supplier.name,
+            surveyTitle: survey.title,
+            surveyToken: assignment.token,
+          });
+          if (success) {
+            sent++;
+            // Record when the invitation email was dispatched
+            assignment.sentAt = new Date();
+            await assignment.save();
+          } else {
+            errors.push(supplier.email);
+          }
+        } catch (e) {
+          errors.push(supplier.email);
+        }
       }
     }
 
     res.json({
       success: true,
-      message: `Survey links generated for ${assignments.length} supplier(s). ${sent > 0 ? `Real email sent to ${sent} inbox(es).` : 'Check terminal or links below to test.'}`,
-      data: { sent, total: assignments.length, failed: errors, links: generatedLinks },
+      message: emailConfigured
+        ? `Survey links generated for ${assignments.length} supplier(s). ${sent > 0 ? `Email sent to ${sent} inbox(es).` : `Email sending failed for all ${assignments.length} supplier(s). Links generated — use Copy Link to share manually.`}`
+        : `Survey links generated for ${assignments.length} supplier(s). Email not configured — use Copy Link to share manually.`,
+      data: { sent, total: assignments.length, failed: errors, links: generatedLinks, emailConfigured },
     });
   } catch (err) {
     next(err);

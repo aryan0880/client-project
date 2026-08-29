@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Send, X, CheckSquare, Square } from 'lucide-react';
+import { Plus, Send, X, CheckSquare, Square, Copy, CheckCircle, AlertTriangle, Mail, MailX } from 'lucide-react';
 import { Card, CardHeader } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -31,6 +31,18 @@ export function SurveysPage() {
   // Form states - Assign Survey
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
+
+  // Send result state — shown inside the modal after assignment
+  type SendResult = {
+    links: Array<{ supplier: string; email: string; link: string }>;
+    sent: number;
+    total: number;
+    failed: string[];
+    emailConfigured: boolean;
+    assignError?: string;
+  };
+  const [sendResult, setSendResult] = useState<SendResult | null>(null);
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -101,30 +113,50 @@ export function SurveysPage() {
 
     try {
       setIsAssigning(true);
-      // 1. Assign to suppliers
-      await surveyService.assign(activeSurvey._id, selectedSuppliers);
-      // 2. Dispatch emails (and receive links)
-      const res = await surveyService.sendEmails(activeSurvey._id);
+      setSendResult(null);
 
-      setIsAssignOpen(false);
-      setSelectedSuppliers([]);
-      setActiveSurvey(null);
-
-      const firstLink = res.data?.links?.[0]?.link;
-      if (firstLink) {
-        if (confirm(`Survey assigned successfully!\n\nLink for supplier:\n${firstLink}\n\nClick OK to open the survey in a new tab now!`)) {
-          window.open(firstLink, '_blank');
-        }
-      } else {
-        alert('Survey assigned successfully!');
+      // Step 1: Assign survey to suppliers (skips already assigned)
+      try {
+        await surveyService.assign(activeSurvey._id, selectedSuppliers);
+      } catch (assignErr: any) {
+        const msg = assignErr?.response?.data?.message ?? 'Survey assignment failed. Please try again.';
+        setSendResult({ links: [], sent: 0, total: 0, failed: [], emailConfigured: false, assignError: msg });
+        return;
       }
+
+      // Step 2: Generate links & send emails
+      const res = await surveyService.sendEmails(activeSurvey._id);
+      const d = res.data ?? {};
+      setSendResult({
+        links: d.links ?? [],
+        sent: d.sent ?? 0,
+        total: d.total ?? 0,
+        failed: d.failed ?? [],
+        emailConfigured: d.emailConfigured ?? false,
+      });
+
       loadData();
-    } catch (err) {
-      console.error('Assignment/Email sending failed:', err);
-      alert('Failed to assign or email survey.');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'An unexpected error occurred. Please try again.';
+      setSendResult({ links: [], sent: 0, total: 0, failed: [], emailConfigured: false, assignError: msg });
     } finally {
       setIsAssigning(false);
     }
+  }
+
+  function handleCopyLink(link: string) {
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedLink(link);
+      setTimeout(() => setCopiedLink(null), 2000);
+    });
+  }
+
+  function handleCloseAssignModal() {
+    setIsAssignOpen(false);
+    setSelectedSuppliers([]);
+    setActiveSurvey(null);
+    setSendResult(null);
+    setCopiedLink(null);
   }
 
   function openAssignModal(survey: Survey) {
@@ -319,7 +351,7 @@ export function SurveysPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 backdrop-blur-sm p-4">
           <form
             onSubmit={handleAssignAndSend}
-            className="bg-white rounded-lg shadow-xl max-w-md w-full border border-neutral-200 animate-scale-up overflow-hidden flex flex-col max-h-[85vh]"
+            className="bg-white rounded-lg shadow-xl max-w-md w-full border border-neutral-200 animate-scale-up overflow-hidden flex flex-col max-h-[90vh]"
           >
             <div className="p-5 border-b border-neutral-100 flex items-center justify-between">
               <div>
@@ -328,64 +360,174 @@ export function SurveysPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setIsAssignOpen(false)}
+                onClick={handleCloseAssignModal}
                 className="p-1.5 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50 rounded-full"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="p-5 space-y-4 overflow-y-auto flex-1 bg-neutral-50">
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                  Select Target Suppliers ({selectedSuppliers.length} selected)
-                </label>
-                <div className="border border-neutral-200 rounded-md divide-y divide-neutral-100 max-h-[280px] overflow-y-auto bg-white p-2 space-y-1">
-                  {suppliers.map((s) => {
-                    const isChecked = selectedSuppliers.includes(s._id);
-                    return (
-                      <button
-                        type="button"
-                        key={s._id}
-                        onClick={() => handleToggleSupplier(s._id)}
-                        className={`w-full flex items-center gap-3 p-2.5 rounded text-left transition-colors ${
-                          isChecked ? 'bg-primary-50/70 border border-primary-200' : 'hover:bg-neutral-50 border border-transparent'
-                        }`}
-                      >
-                        {isChecked ? (
-                          <CheckSquare className="h-4 w-4 text-primary-600 flex-shrink-0" />
-                        ) : (
-                          <Square className="h-4 w-4 text-neutral-300 flex-shrink-0" />
-                        )}
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-neutral-800">{s.name}</p>
-                          <p className="text-xs text-neutral-400">{s.email}</p>
+            {/* Result panel — shown after send attempt */}
+            {sendResult ? (
+              <div className="p-5 space-y-4 overflow-y-auto flex-1">
+                {/* Assignment error */}
+                {sendResult.assignError && (
+                  <div className="flex items-start gap-3 p-3 bg-danger-50 border border-danger-200 rounded-lg">
+                    <AlertTriangle className="h-4 w-4 text-danger-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-danger-800">Assignment Failed</p>
+                      <p className="text-xs text-danger-700 mt-0.5">{sendResult.assignError}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Success / Links panel */}
+                {!sendResult.assignError && sendResult.links.length > 0 && (
+                  <>
+                    {/* Email status banner */}
+                    {sendResult.emailConfigured ? (
+                      sendResult.sent > 0 ? (
+                        <div className="flex items-center gap-2 p-3 bg-success-50 border border-success-100 rounded-lg">
+                          <Mail className="h-4 w-4 text-success-600 flex-shrink-0" />
+                          <p className="text-sm text-success-700 font-medium">
+                            Email sent to {sendResult.sent} of {sendResult.total} supplier(s).
+                          </p>
                         </div>
-                      </button>
-                    );
-                  })}
-                  {suppliers.length === 0 && (
-                    <p className="text-xs text-center text-neutral-400 py-6">
-                      No suppliers registered. Please add contacts first.
-                    </p>
-                  )}
+                      ) : (
+                        <div className="flex items-start gap-2 p-3 bg-warning-50 border border-warning-100 rounded-lg">
+                          <MailX className="h-4 w-4 text-warning-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-semibold text-warning-700">Email Sending Failed</p>
+                            <p className="text-xs text-warning-700 mt-0.5">
+                              The system could not deliver the email. Use the links below to share the survey manually.
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    ) : (
+                      <div className="flex items-start gap-2 p-3 bg-neutral-50 border border-neutral-200 rounded-lg">
+                        <MailX className="h-4 w-4 text-neutral-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-semibold text-neutral-700">Email Not Configured</p>
+                          <p className="text-xs text-neutral-500 mt-0.5">
+                            Set <code className="bg-neutral-100 px-1 rounded">RESEND_API_KEY</code> and{' '}
+                            <code className="bg-neutral-100 px-1 rounded">EMAIL_FROM</code> in{' '}
+                            <code className="bg-neutral-100 px-1 rounded">backend/.env</code> to enable email delivery.
+                            For now, share the links below manually.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Per-supplier links */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Survey Links</p>
+                      {sendResult.links.map((item) => (
+                        <div key={item.email} className="bg-neutral-50 border border-neutral-200 rounded-lg p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-neutral-800 truncate">{item.supplier}</p>
+                              <p className="text-xs text-neutral-400 truncate">{item.email}</p>
+                            </div>
+                            {sendResult.emailConfigured && sendResult.sent > 0 && !sendResult.failed.includes(item.email) ? (
+                              <span className="flex items-center gap-1 text-xs text-success-600 font-medium flex-shrink-0">
+                                <CheckCircle className="h-3.5 w-3.5" /> Sent
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              readOnly
+                              value={item.link}
+                              className="flex-1 text-xs bg-white border border-neutral-200 rounded px-2 py-1.5 text-neutral-600 font-mono truncate min-w-0"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleCopyLink(item.link)}
+                              title="Copy survey link"
+                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 rounded transition-colors flex-shrink-0"
+                            >
+                              {copiedLink === item.link ? (
+                                <><CheckCircle className="h-3.5 w-3.5" /> Copied!</>
+                              ) : (
+                                <><Copy className="h-3.5 w-3.5" /> Copy Link</>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* No links generated */}
+                {!sendResult.assignError && sendResult.links.length === 0 && (
+                  <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-600">
+                    No pending assignments found. These suppliers may have already received this survey.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-5 space-y-4 overflow-y-auto flex-1 bg-neutral-50">
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                    Select Target Suppliers ({selectedSuppliers.length} selected)
+                  </label>
+                  <div className="border border-neutral-200 rounded-md divide-y divide-neutral-100 max-h-[280px] overflow-y-auto bg-white p-2 space-y-1">
+                    {suppliers.map((s) => {
+                      const isChecked = selectedSuppliers.includes(s._id);
+                      return (
+                        <button
+                          type="button"
+                          key={s._id}
+                          onClick={() => handleToggleSupplier(s._id)}
+                          className={`w-full flex items-center gap-3 p-2.5 rounded text-left transition-colors ${
+                            isChecked ? 'bg-primary-50/70 border border-primary-200' : 'hover:bg-neutral-50 border border-transparent'
+                          }`}
+                        >
+                          {isChecked ? (
+                            <CheckSquare className="h-4 w-4 text-primary-600 flex-shrink-0" />
+                          ) : (
+                            <Square className="h-4 w-4 text-neutral-300 flex-shrink-0" />
+                          )}
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-neutral-800">{s.name}</p>
+                            <p className="text-xs text-neutral-400">{s.email}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                    {suppliers.length === 0 && (
+                      <p className="text-xs text-center text-neutral-400 py-6">
+                        No suppliers registered. Please add contacts first.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div className="p-4 border-t border-neutral-100 flex justify-end gap-2 bg-white">
-              <Button type="button" variant="secondary" size="sm" onClick={() => setIsAssignOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                isLoading={isAssigning}
-                disabled={selectedSuppliers.length === 0}
-              >
-                Send Invitations
-              </Button>
+              {sendResult ? (
+                <Button type="button" variant="primary" size="sm" onClick={handleCloseAssignModal}>
+                  Done
+                </Button>
+              ) : (
+                <>
+                  <Button type="button" variant="secondary" size="sm" onClick={handleCloseAssignModal}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                    isLoading={isAssigning}
+                    disabled={selectedSuppliers.length === 0}
+                  >
+                    Send Invitations
+                  </Button>
+                </>
+              )}
             </div>
           </form>
         </div>

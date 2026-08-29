@@ -22,8 +22,8 @@ export function errorHandler(
   let statusCode = 500;
   let message = 'Internal server error';
 
-  if (err instanceof ApiError) {
-    statusCode = err.statusCode;
+  if (err instanceof ApiError || (err && (err as any).isOperational !== undefined && typeof (err as any).statusCode === 'number')) {
+    statusCode = (err as any).statusCode;
     message = err.message;
   } else if (err.name === 'ValidationError') {
     // Mongoose validation error

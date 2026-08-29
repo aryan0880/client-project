@@ -26,6 +26,8 @@ export const env = {
   jwtExpiresIn: optionalEnv('JWT_EXPIRES_IN', '7d'),
   resendApiKey: optionalEnv('RESEND_API_KEY', ''),
   emailFrom: optionalEnv('EMAIL_FROM', ''),
+  smtpUser: optionalEnv('SMTP_USER', ''),
+  smtpPass: optionalEnv('SMTP_PASS', ''),
   frontendUrl: optionalEnv('FRONTEND_URL', 'http://localhost:5173'),
   isDevelopment: optionalEnv('NODE_ENV', 'development') === 'development',
 };
