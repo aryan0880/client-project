@@ -3,8 +3,6 @@ import {
   LayoutDashboard,
   Users,
   ClipboardList,
-  HelpCircle,
-  MessageSquare,
   BarChart2,
   LogOut,
   Menu,

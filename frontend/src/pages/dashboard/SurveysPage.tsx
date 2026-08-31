@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Send, X, CheckSquare, Square, CheckCircle, AlertTriangle, ExternalLink, FileSpreadsheet, Mail, MailX, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Send, X, CheckSquare, Square, CheckCircle, AlertTriangle, ExternalLink, FileSpreadsheet, MailX, Trash2, Edit2 } from 'lucide-react';
 import { Card, CardHeader } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';

@@ -7,8 +7,6 @@ import { PublicLayout } from '../layouts/PublicLayout';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import { SuppliersPage } from '../pages/dashboard/SuppliersPage';
 import { SurveysPage } from '../pages/dashboard/SurveysPage';
-import { QuestionsPage } from '../pages/dashboard/QuestionsPage';
-import { ResponsesPage } from '../pages/dashboard/ResponsesPage';
 import { ReportsPage } from '../pages/dashboard/ReportsPage';
 import { SupplierSurveyPage } from '../pages/survey/SupplierSurveyPage';
 
