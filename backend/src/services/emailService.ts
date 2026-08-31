@@ -19,10 +19,9 @@ export async function sendSurveyInvitation(opts: SendSurveyEmailOptions): Promis
     try {
       const nodemailer = await import('nodemailer');
       const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        family: 4, // Enforce IPv4 to resolve ENETUNREACH errors on cloud platforms like Render
+        service: 'gmail',
+        connectionTimeout: 10000, // 10 seconds timeout
+        socketTimeout: 10000,
         auth: {
           user: env.smtpUser,
           pass: env.smtpPass,
