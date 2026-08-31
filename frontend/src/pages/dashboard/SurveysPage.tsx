@@ -175,7 +175,8 @@ export function SurveysPage() {
 
       loadData();
     } catch (err: any) {
-      const msg = err?.response?.data?.message ?? 'An unexpected error occurred while sending emails.';
+      const serverMsg = err?.response?.data?.message;
+      const msg = serverMsg || err?.message || 'An unexpected error occurred while sending emails.';
       setSendResult({ sent: 0, total: 0, failed: [], emailConfigured: false, assignError: msg });
     } finally {
       setIsAssigning(false);
