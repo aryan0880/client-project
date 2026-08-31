@@ -14,7 +14,33 @@ interface SendSurveyEmailOptions {
 export async function sendSurveyInvitation(opts: SendSurveyEmailOptions): Promise<boolean> {
   const surveyUrl = opts.googleFormUrl;
 
-  // 1. Try Gmail / Custom SMTP if configured
+  // 1. Try Resend API first — works via HTTPS on all cloud platforms (Render, Railway, etc.)
+  if (env.resendApiKey && !env.resendApiKey.startsWith('re_replace') && env.resendApiKey.length > 10) {
+    try {
+      const { Resend } = await import('resend');
+      const resend = new Resend(env.resendApiKey);
+
+      const { error } = await resend.emails.send({
+        from: env.emailFrom || 'onboarding@resend.dev',
+        to: opts.supplierEmail,
+        subject: `Supplier Survey Invitation: ${opts.surveyTitle}`,
+        html: buildEmailHtml(opts.supplierName, opts.surveyTitle, surveyUrl),
+      });
+
+      if (error) {
+        console.error('[Email Resend] Failed to send survey invitation:', error);
+        // fall through to SMTP
+      } else {
+        console.log(`[Email Resend] Survey invitation sent to ${opts.supplierEmail}`);
+        return true;
+      }
+    } catch (err) {
+      console.error('[Email Resend] Unexpected error, will try SMTP:', err);
+      // fall through to SMTP
+    }
+  }
+
+  // 2. Fallback: Gmail SMTP
   if (env.smtpUser && env.smtpPass) {
     try {
       const nodemailer = await import('nodemailer');
@@ -46,34 +72,8 @@ export async function sendSurveyInvitation(opts: SendSurveyEmailOptions): Promis
     }
   }
 
-  // 2. Fallback to Resend API
-  if (!env.resendApiKey || env.resendApiKey.startsWith('re_replace')) {
-    console.warn('[Email] Neither SMTP nor RESEND_API_KEY is configured — skipping email send.');
-    return false;
-  }
-
-  try {
-    const { Resend } = await import('resend');
-    const resend = new Resend(env.resendApiKey);
-
-    const { error } = await resend.emails.send({
-      from: env.emailFrom || 'onboarding@resend.dev',
-      to: opts.supplierEmail,
-      subject: `Supplier Survey Invitation: ${opts.surveyTitle}`,
-      html: buildEmailHtml(opts.supplierName, opts.surveyTitle, surveyUrl),
-    });
-
-    if (error) {
-      console.error('[Email Resend] Failed to send survey invitation:', error);
-      return false;
-    }
-
-    console.log(`[Email Resend] Survey invitation sent to ${opts.supplierEmail}`);
-    return true;
-  } catch (err) {
-    console.error('[Email Resend] Unexpected error:', err);
-    return false;
-  }
+  console.warn('[Email] Neither Resend API nor SMTP is configured — skipping email send.');
+  return false;
 }
 
 function buildEmailHtml(supplierName: string, surveyTitle: string, surveyUrl: string): string {
