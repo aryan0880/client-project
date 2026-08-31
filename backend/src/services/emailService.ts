@@ -19,13 +19,15 @@ export async function sendSurveyInvitation(opts: SendSurveyEmailOptions): Promis
     try {
       const nodemailer = await import('nodemailer');
       const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         family: 4, // Enforce IPv4 to resolve ENETUNREACH errors on cloud platforms like Render
         auth: {
           user: env.smtpUser,
           pass: env.smtpPass,
         },
-      });
+      } as any);
 
       await transporter.sendMail({
         from: `"SupplierAssess" <${env.smtpUser}>`,
