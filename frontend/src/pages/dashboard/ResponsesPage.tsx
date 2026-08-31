@@ -86,8 +86,19 @@ export function ResponsesPage() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-neutral-900">Responses</h1>
-          <p className="text-sm text-neutral-500 mt-0.5">Track supplier survey responses and performance scores</p>
+          <h1 className="text-xl font-semibold text-neutral-900">Survey Responses</h1>
+          <p className="text-sm text-neutral-500 mt-0.5">View live supplier responses and Google Sheets spreadsheets</p>
+        </div>
+      </div>
+
+      <div className="p-4 bg-primary-50 border border-primary-200 text-primary-900 rounded-lg text-sm flex items-start gap-3">
+        <span className="text-lg">📊</span>
+        <div>
+          <p className="font-semibold">Google Forms & Sheets Integration</p>
+          <p className="text-xs text-primary-700 mt-0.5">
+            Since surveys are hosted on Google Forms, all new responses are saved live in **Google Sheets**.
+            Click <strong>Open Google Sheets</strong> on any survey in the <strong>Surveys</strong> tab to view live responses or download as Excel (.xlsx).
+          </p>
         </div>
       </div>
 
@@ -99,73 +110,75 @@ export function ResponsesPage() {
 
       <Card padding="none">
         <CardHeader
-          title="Supplier Assessments"
-          subtitle={`${responses.length} assessment response(s) received`}
+          title="Past Custom Assessments (Legacy)"
+          subtitle={`${responses.length} legacy response(s) stored in database`}
           className="px-5 pt-5 pb-0"
         />
-        <table className="data-table mt-3">
-          <thead>
-            <tr>
-              <th>Supplier</th>
-              <th>Survey Name</th>
-              <th>Status</th>
-              <th>Score</th>
-              <th className="hidden md:table-cell">Submitted At</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {responses.map((r) => (
-              <tr key={r._id}>
-                <td>
-                  <div>
-                    <span className="font-semibold text-neutral-900 block">
-                      {r.assignment?.supplier?.name ?? 'Deleted Supplier'}
-                    </span>
-                    <span className="text-xs text-neutral-500">
-                      {r.assignment?.supplier?.email ?? '—'}
-                    </span>
-                  </div>
-                </td>
-                <td className="text-neutral-600">{r.assignment?.survey?.title ?? 'Deleted Survey'}</td>
-                <td>
-                  <Badge variant="success">Submitted</Badge>
-                </td>
-                <td className="font-mono text-neutral-800 font-semibold">
-                  {r.totalScore}/{r.maxPossibleScore} ({Math.round((r.totalScore / r.maxPossibleScore) * 100)}%)
-                </td>
-                <td className="hidden md:table-cell text-neutral-500">
-                  {formatDate(r.createdAt)}
-                </td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleViewDetails(r._id)}
-                      className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
-                      title="View Details"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleExportExcel(r.assignment?.survey?._id)}
-                      className="p-1.5 text-neutral-400 hover:text-success-600 hover:bg-success-50 rounded transition-colors"
-                      title="Export Survey responses to Excel"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {responses.length === 0 && (
+        <div className="overflow-x-auto">
+          <table className="data-table mt-3">
+            <thead>
               <tr>
-                <td colSpan={6} className="text-center py-8 text-neutral-400 text-sm">
-                  No survey responses received yet.
-                </td>
+                <th>Supplier</th>
+                <th>Survey Name</th>
+                <th>Status</th>
+                <th>Score</th>
+                <th className="hidden md:table-cell">Submitted At</th>
+                <th>Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {responses.map((r) => (
+                <tr key={r._id}>
+                  <td>
+                    <div>
+                      <span className="font-semibold text-neutral-900 block">
+                        {r.assignment?.supplier?.name ?? 'Deleted Supplier'}
+                      </span>
+                      <span className="text-xs text-neutral-500">
+                        {r.assignment?.supplier?.email ?? '—'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="text-neutral-600">{r.assignment?.survey?.title ?? 'Deleted Survey'}</td>
+                  <td>
+                    <Badge variant="success">Submitted</Badge>
+                  </td>
+                  <td className="font-mono text-neutral-800 font-semibold">
+                    {r.totalScore}/{r.maxPossibleScore} ({Math.round((r.totalScore / r.maxPossibleScore) * 100)}%)
+                  </td>
+                  <td className="hidden md:table-cell text-neutral-500">
+                    {formatDate(r.createdAt)}
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleViewDetails(r._id)}
+                        className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                        title="View Details"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleExportExcel(r.assignment?.survey?._id)}
+                        className="p-1.5 text-neutral-400 hover:text-success-600 hover:bg-success-50 rounded transition-colors"
+                        title="Export Survey responses to Excel"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {responses.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-neutral-400 text-sm">
+                    No legacy responses stored in database. All new responses are saved in Google Sheets.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       {/* Response Detail Modal */}

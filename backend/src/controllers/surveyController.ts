@@ -8,8 +8,9 @@ import { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 export const createSurveyValidation = [
   body('title').trim().notEmpty().withMessage('Survey title is required'),
+  body('googleFormUrl').trim().isURL().withMessage('Valid Google Form URL is required'),
+  body('googleSheetsUrl').optional().trim(),
   body('description').optional().trim(),
-  body('questions').optional().isArray().withMessage('Questions must be an array'),
   validateRequest,
 ];
 
@@ -28,11 +29,9 @@ export async function getSurveys(
             _id: '1',
             title: 'Supplier Performance Assessment - Test',
             description: 'A standardised assessment to evaluate supplier performance.',
+            googleFormUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSc_EXAMPLE/viewform',
+            googleSheetsUrl: 'https://docs.google.com/spreadsheets/d/EXAMPLE/edit',
             status: 'active',
-            questions: [
-              { _id: '1', text: 'How would you rate the overall quality of supplied products?', type: 'rating', points: 1, order: 1 },
-              { _id: '2', text: 'Are deliveries generally made on time?', type: 'yesno', points: 1, order: 2 },
-            ],
             createdAt: new Date(),
           },
         ],

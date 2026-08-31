@@ -87,9 +87,11 @@ export interface Survey {
   _id: string;
   title: string;
   description?: string;
+  googleFormUrl: string;
+  googleSheetsUrl?: string;
   status: SurveyStatus;
-  questions: Question[];
-  createdBy: { _id: string; name: string; email: string };
+  questions?: Question[];
+  createdBy?: { _id: string; name: string; email: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -97,7 +99,8 @@ export interface Survey {
 export interface CreateSurveyDto {
   title: string;
   description?: string;
-  questions?: string[];
+  googleFormUrl: string;
+  googleSheetsUrl?: string;
   status?: SurveyStatus;
 }
 

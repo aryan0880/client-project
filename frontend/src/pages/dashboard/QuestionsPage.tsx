@@ -115,6 +115,17 @@ export function QuestionsPage() {
         </div>
       )}
 
+      <div className="p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-sm flex items-start gap-3">
+        <span className="text-lg">📝</span>
+        <div>
+          <p className="font-semibold">Questions Managed in Google Forms</p>
+          <p className="text-xs text-amber-800 mt-0.5">
+            Since your surveys now use <strong>Google Forms</strong>, questions are added, edited, and scored directly inside Google Forms. 
+            The list below contains legacy questions from previous custom surveys.
+          </p>
+        </div>
+      </div>
+
       <Card padding="none">
         <CardHeader
           title="Question Repository"

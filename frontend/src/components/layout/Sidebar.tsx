@@ -19,8 +19,6 @@ const navItems = [
   { to: '/dashboard',   label: 'Dashboard',  Icon: LayoutDashboard },
   { to: '/suppliers',   label: 'Suppliers',   Icon: Users },
   { to: '/surveys',     label: 'Surveys',     Icon: ClipboardList },
-  { to: '/questions',   label: 'Questions',   Icon: HelpCircle },
-  { to: '/responses',   label: 'Responses',   Icon: MessageSquare },
   { to: '/reports',     label: 'Reports',     Icon: BarChart2 },
 ];
 

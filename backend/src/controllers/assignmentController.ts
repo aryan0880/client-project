@@ -114,11 +114,11 @@ export async function sendSurveyEmails(
         console.warn(`[Warn] Supplier not found for assignment ${assignment._id}, skipping email.`);
         continue;
       }
-      const surveyUrl = `${env.frontendUrl}/survey/${assignment.token}`;
+      const surveyUrl = survey.googleFormUrl;
       generatedLinks.push({ supplier: supplier.name, email: supplier.email, link: surveyUrl });
 
       console.log(`\n======================================================`);
-      console.log(`[SURVEY INVITATION LINK FOR ${supplier.name} (${supplier.email})]:`);
+      console.log(`[GOOGLE FORM SURVEY LINK FOR ${supplier.name} (${supplier.email})]:`);
       console.log(`🔗 ${surveyUrl}`);
       console.log(`======================================================\n`);
 
@@ -128,7 +128,7 @@ export async function sendSurveyEmails(
             supplierEmail: supplier.email,
             supplierName: supplier.name,
             surveyTitle: survey.title,
-            surveyToken: assignment.token,
+            googleFormUrl: survey.googleFormUrl,
           });
           if (success) {
             sent++;

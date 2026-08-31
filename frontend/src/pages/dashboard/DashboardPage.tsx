@@ -187,35 +187,63 @@ export function DashboardPage() {
               }
               className="px-5 pt-5 pb-0"
             />
-            <table className="data-table mt-2">
-              <thead>
-                <tr>
-                  <th>Survey</th>
-                  <th>Status</th>
-                  <th className="hidden sm:table-cell">Questions</th>
-                  <th className="hidden md:table-cell">Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {surveys.slice(0, 5).map((s) => (
-                  <tr key={s._id}>
-                    <td className="font-medium text-neutral-900">{s.title}</td>
-                    <td><SurveyStatusBadge status={s.status} /></td>
-                    <td className="hidden sm:table-cell">
-                      {Array.isArray(s.questions) ? s.questions.length : 0} questions
-                    </td>
-                    <td className="hidden md:table-cell text-neutral-500">{formatDate(s.createdAt)}</td>
-                  </tr>
-                ))}
-                {surveys.length === 0 && (
+            <div className="overflow-x-auto">
+              <table className="data-table mt-2">
+                <thead>
                   <tr>
-                    <td colSpan={4} className="text-center py-6 text-neutral-400 text-sm">
-                      No surveys created yet.
-                    </td>
+                    <th>Survey</th>
+                    <th>Status</th>
+                    <th>Google Form</th>
+                    <th>Google Sheets Responses</th>
+                    <th className="hidden md:table-cell">Created</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {surveys.slice(0, 5).map((s) => (
+                    <tr key={s._id}>
+                      <td className="font-medium text-neutral-900">{s.title}</td>
+                      <td><SurveyStatusBadge status={s.status} /></td>
+                      <td>
+                        {s.googleFormUrl ? (
+                          <a
+                            href={s.googleFormUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary-600 hover:underline font-medium"
+                          >
+                            Open Form ↗
+                          </a>
+                        ) : (
+                          <span className="text-xs text-neutral-400">—</span>
+                        )}
+                      </td>
+                      <td>
+                        {s.googleSheetsUrl ? (
+                          <a
+                            href={s.googleSheetsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-emerald-600 hover:underline font-medium"
+                          >
+                            Open Responses 📊
+                          </a>
+                        ) : (
+                          <span className="text-xs text-neutral-400">Not linked</span>
+                        )}
+                      </td>
+                      <td className="hidden md:table-cell text-neutral-500">{formatDate(s.createdAt)}</td>
+                    </tr>
+                  ))}
+                  {surveys.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="text-center py-6 text-neutral-400 text-sm">
+                        No surveys created yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
             <div className="px-5 pb-4 pt-2 border-t border-neutral-100 mt-2">
               <p className="text-xs text-neutral-400">Showing {Math.min(5, surveys.length)} survey(s)</p>
             </div>
@@ -256,55 +284,6 @@ export function DashboardPage() {
           </Card>
         </div>
       </div>
-
-      {/* Recent responses */}
-      <Card padding="none">
-        <CardHeader
-          title="Recent Responses"
-          action={
-            <Link to="/responses" className="text-xs text-primary-600 hover:underline">
-              View all
-            </Link>
-          }
-          className="px-5 pt-5 pb-0"
-        />
-        <table className="data-table mt-2">
-          <thead>
-            <tr>
-              <th>Supplier</th>
-              <th>Survey</th>
-              <th>Score</th>
-              <th className="hidden sm:table-cell">Submitted</th>
-            </tr>
-          </thead>
-          <tbody>
-            {responses.slice(0, 5).map((r) => (
-              <tr key={r._id}>
-                <td className="font-medium text-neutral-900">
-                  {r.assignment?.supplier?.name ?? '—'}
-                </td>
-                <td className="text-neutral-500">{r.assignment?.survey?.title ?? '—'}</td>
-                <td className="font-mono font-semibold text-neutral-800">
-                  {r.totalScore}/{r.maxPossibleScore}
-                </td>
-                <td className="hidden sm:table-cell text-neutral-500">
-                  {formatDate(r.createdAt)}
-                </td>
-              </tr>
-            ))}
-            {responses.length === 0 && (
-              <tr>
-                <td colSpan={4} className="text-center py-6 text-neutral-400 text-sm">
-                  No survey responses received yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-        <div className="px-5 pb-4 pt-2 border-t border-neutral-100 mt-2">
-          <p className="text-xs text-neutral-400">Showing {Math.min(5, responses.length)} record(s)</p>
-        </div>
-      </Card>
     </div>
   );
 }

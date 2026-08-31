@@ -28,9 +28,7 @@ const surveyAssignmentSchema = new Schema<ISurveyAssignment>(
     },
     token: {
       type: String,
-      required: true,
-      unique: true,
-      index: true, // Fast lookup when supplier opens survey link
+      default: '',
     },
     status: {
       type: String,

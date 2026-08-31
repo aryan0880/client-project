@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, X } from 'lucide-react';
 import { Card, CardHeader } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -15,6 +15,7 @@ export function SuppliersPage() {
 
   // Form states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
@@ -37,21 +38,42 @@ export function SuppliersPage() {
     }
   }
 
+  function handleOpenCreate() {
+    setEditingSupplier(null);
+    setName('');
+    setEmail('');
+    setStatus('active');
+    setIsModalOpen(true);
+  }
+
+  function handleOpenEdit(supplier: Supplier) {
+    setEditingSupplier(supplier);
+    setName(supplier.name);
+    setEmail(supplier.email);
+    setStatus(supplier.status);
+    setIsModalOpen(true);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !email.trim()) return;
 
     try {
       setIsSubmitting(true);
-      await supplierService.create({ name, email, status });
+      if (editingSupplier) {
+        await supplierService.update(editingSupplier._id, { name, email, status });
+      } else {
+        await supplierService.create({ name, email, status });
+      }
       setIsModalOpen(false);
       setName('');
       setEmail('');
       setStatus('active');
+      setEditingSupplier(null);
       loadSuppliers();
     } catch (err) {
-      console.error('Failed to add supplier:', err);
-      alert('Failed to register supplier contact.');
+      console.error('Failed to save supplier:', err);
+      alert('Failed to save supplier contact.');
     } finally {
       setIsSubmitting(false);
     }
@@ -90,7 +112,7 @@ export function SuppliersPage() {
           variant="primary"
           size="sm"
           leftIcon={<Plus className="h-3.5 w-3.5" />}
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleOpenCreate}
         >
           Add Supplier
         </Button>
@@ -108,59 +130,68 @@ export function SuppliersPage() {
           subtitle={`${suppliers.length} supplier(s) registered`}
           className="px-5 pt-5 pb-0"
         />
-        <table className="data-table mt-3">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Status</th>
-              <th className="hidden md:table-cell">Added</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {suppliers.map((s) => (
-              <tr key={s._id}>
-                <td>
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-semibold text-primary-700 flex-shrink-0">
-                      {s.name[0]}
-                    </div>
-                    <span className="font-medium text-neutral-900">{s.name}</span>
-                  </div>
-                </td>
-                <td className="text-neutral-500">{s.email}</td>
-                <td>
-                  <Badge variant={s.status === 'active' ? 'success' : 'default'}>
-                    {s.status === 'active' ? 'Active' : 'Inactive'}
-                  </Badge>
-                </td>
-                <td className="hidden md:table-cell text-neutral-500">{formatDate(s.createdAt)}</td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleDelete(s._id)}
-                      className="p-1.5 text-neutral-400 hover:text-danger-600 hover:bg-danger-50 rounded transition-colors"
-                      title="Remove Supplier"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {suppliers.length === 0 && (
+        <div className="overflow-x-auto">
+          <table className="data-table mt-3">
+            <thead>
               <tr>
-                <td colSpan={5} className="text-center py-8 text-neutral-400 text-sm">
-                  No suppliers added yet.
-                </td>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th className="hidden md:table-cell">Added</th>
+                <th>Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {suppliers.map((s) => (
+                <tr key={s._id}>
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-semibold text-primary-700 flex-shrink-0">
+                        {s.name[0]}
+                      </div>
+                      <span className="font-medium text-neutral-900">{s.name}</span>
+                    </div>
+                  </td>
+                  <td className="text-neutral-500">{s.email}</td>
+                  <td>
+                    <Badge variant={s.status === 'active' ? 'success' : 'default'}>
+                      {s.status === 'active' ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </td>
+                  <td className="hidden md:table-cell text-neutral-500">{formatDate(s.createdAt)}</td>
+                  <td>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleOpenEdit(s)}
+                        className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                        title="Edit Supplier"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(s._id)}
+                        className="p-1.5 text-neutral-400 hover:text-danger-600 hover:bg-danger-50 rounded transition-colors"
+                        title="Remove Supplier"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {suppliers.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="text-center py-8 text-neutral-400 text-sm">
+                    No suppliers added yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
-      {/* Add Supplier Modal */}
+      {/* Add / Edit Supplier Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 backdrop-blur-sm p-4">
           <form
@@ -168,7 +199,9 @@ export function SuppliersPage() {
             className="bg-white rounded-lg shadow-xl max-w-md w-full border border-neutral-200 animate-scale-up overflow-hidden"
           >
             <div className="p-5 border-b border-neutral-100 flex items-center justify-between">
-              <h2 className="text-base font-bold text-neutral-900">Add Supplier</h2>
+              <h2 className="text-base font-bold text-neutral-900">
+                {editingSupplier ? 'Edit Supplier' : 'Add Supplier'}
+              </h2>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}

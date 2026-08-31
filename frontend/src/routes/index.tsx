@@ -55,8 +55,6 @@ export function AppRoutes() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="suppliers" element={<SuppliersPage />} />
         <Route path="surveys" element={<SurveysPage />} />
-        <Route path="questions" element={<QuestionsPage />} />
-        <Route path="responses" element={<ResponsesPage />} />
         <Route path="reports" element={<ReportsPage />} />
       </Route>
 
