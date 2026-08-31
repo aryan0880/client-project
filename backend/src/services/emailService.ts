@@ -19,8 +19,11 @@ export async function sendSurveyInvitation(opts: SendSurveyEmailOptions): Promis
     try {
       const nodemailer = await import('nodemailer');
       const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        connectionTimeout: 10000, // 10 seconds timeout
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // STARTTLS
+        family: 4, // Enforce IPv4 on cloud hosts
+        connectionTimeout: 10000,
         socketTimeout: 10000,
         auth: {
           user: env.smtpUser,
